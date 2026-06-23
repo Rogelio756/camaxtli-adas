@@ -1,0 +1,47 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: copilot
+      POSTGRES_PASSWORD: copilot123
+      POSTGRES_DB: adas_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copilot"]
+      interval: 5s
+      retries: 5
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: ./docker/celery/Dockerfile
+    container_name: celery_worker
+    depends_on:
+      - rabbitmq
+      - postgres
+    environment:
+      CELERY_BROKER_URL: amqp://admin:admin@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: db+postgresql://copilot:copilot123@postgres/adas_db
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: celery -A app.tasks worker --loglevel=info
+
+volumes:
+  pgdata:

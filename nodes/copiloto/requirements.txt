@@ -1,0 +1,10 @@
+paho-mqtt
+protobuf
+celery
+psycopg2-binary
+sqlalchemy
+ultralytics
+numpy
+opencv-python
+flask
+python-dotenv
