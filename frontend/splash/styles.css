@@ -1,0 +1,184 @@
+:root {
+  --bg: #050d18;
+  --accent: #5ba3f5;
+  --text: #e8f0ff;
+  --dim: #1a3a5c;
+  --green: #4ade80;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes fillBar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-up {
+  opacity: 0;
+  animation: fadeUp 0.7s ease forwards;
+}
+
+/* Label superior */
+.label-system {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  animation-delay: 0.1s;
+}
+
+/* Nombre principal */
+.title-camaxtli {
+  font-size: 72px;
+  font-weight: 200;
+  letter-spacing: 12px;
+  color: var(--text);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  animation-delay: 0.3s;
+}
+
+.title-camaxtli .x-accent {
+  color: var(--accent);
+}
+
+/* Divisor */
+.divider {
+  width: 40px;
+  height: 2px;
+  background: #185FA5;
+  margin: 0 auto 36px;
+  animation-delay: 0.5s;
+}
+
+/* Nodos */
+.nodes-row {
+  display: flex;
+  gap: 48px;
+  margin-bottom: 40px;
+  animation-delay: 0.7s;
+}
+
+.node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.node-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.node:nth-child(2) .node-dot {
+  animation-delay: 0.6s;
+}
+
+.node:nth-child(3) .node-dot {
+  animation-delay: 1.2s;
+}
+
+/* Barra de progreso */
+.progress-wrap {
+  width: 320px;
+  height: 2px;
+  background: var(--dim);
+  border-radius: 2px;
+  margin-bottom: 36px;
+  overflow: hidden;
+  animation-delay: 0.9s;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  border-radius: 2px;
+  animation: fillBar 3s ease forwards;
+  animation-delay: 1s;
+}
+
+/* Botón entrar */
+.btn-enter {
+  display: inline-block;
+  padding: 12px 32px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: transparent;
+  font-family: sans-serif;
+  opacity: 0;
+  transition: background 0.2s, color 0.2s;
+  animation: fadeIn 0.5s ease forwards;
+  animation-delay: 4.1s;
+  animation-play-state: paused;
+}
+
+.btn-enter.visible {
+  animation-play-state: running;
+}
+
+.btn-enter:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* Footer */
+.footer {
+  position: fixed;
+  bottom: 20px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  text-transform: uppercase;
+  animation-delay: 1.2s;
+}

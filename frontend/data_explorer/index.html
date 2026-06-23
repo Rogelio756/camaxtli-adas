@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAMAXTLI · Data Explorer</title>
+  <link rel="stylesheet" href="/data/styles.css">
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header>
+    <div>
+      <div class="header-brand">CAMA<span class="x-accent">X</span>TLI</div>
+      <div class="header-sub">Data Explorer</div>
+    </div>
+  </header>
+
+  <!-- ── Nav ── -->
+  <nav>
+    <a class="nav-tab" href="/splash">Inicio</a>
+    <a class="nav-tab" href="/dashboard">Dashboard</a>
+    <a class="nav-tab active" href="/data">Data Explorer</a>
+  </nav>
+
+  <div class="page">
+
+    <!-- ── Summary cards ── -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="summary-label">Total Placas</div>
+        <div class="summary-value" id="stat-total">--</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Conf. Promedio</div>
+        <div class="summary-value" id="stat-conf">--%</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Imágenes ROI</div>
+        <div class="summary-value" id="stat-imgs">--</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Sesiones</div>
+        <div class="summary-value" id="stat-sessions">--</div>
+      </div>
+    </div>
+
+    <!-- ── Filters ── -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all"     onclick="setFilter(this, 'all')">Todo</button>
+      <button class="filter-btn"        data-filter="high"    onclick="setFilter(this, 'high')">Alta ≥0.95</button>
+      <button class="filter-btn"        data-filter="medium"  onclick="setFilter(this, 'medium')">Media 0.8–0.95</button>
+      <button class="filter-btn"        data-filter="low"     onclick="setFilter(this, 'low')">Baja &lt;0.80</button>
+      <input  class="filter-search" id="search-input" type="text"
+              placeholder="Buscar placa..." oninput="filterTable()">
+    </div>
+
+    <!-- ── Charts row ── -->
+    <div class="charts-row">
+
+      <!-- Bar chart: confianza OCR por sesión -->
+      <div class="chart-panel">
+        <div class="chart-title">Confianza OCR por sesión</div>
+        <div class="chart-body">
+          <svg class="bar-chart-svg" id="bar-svg" viewBox="0 0 400 120"
+               preserveAspectRatio="none">
+            <text x="4" y="10" class="axis-label">Cargando...</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="chart-panel">
+        <div class="chart-title">Registro de detecciones</div>
+        <div class="chart-body">
+          <ul class="timeline-list" id="timeline-list">
+            <li><span class="loading">Cargando...</span></li>
+          </ul>
+          <div class="pagination">
+            <button class="page-btn" onclick="prevPage()">&#8592; Ant.</button>
+            <span id="page-label" style="font-size:10px;opacity:0.5;align-self:center">1</span>
+            <button class="page-btn" onclick="nextPage()">Sig. &#8594;</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── ROI Gallery ── -->
+    <div class="gallery-title">Galería ROI</div>
+    <div class="gallery-grid" id="gallery-grid">
+      <div class="gallery-item"><span class="loading">Cargando...</span></div>
+    </div>
+
+    <!-- ── FPS trend ── -->
+    <div class="trend-panel">
+      <div class="chart-title">Tendencia FPS</div>
+      <svg class="trend-svg" id="trend-svg" viewBox="0 0 800 60"
+           preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#5ba3f5"/>
+            <stop offset="100%" stop-color="#050d18"/>
+          </linearGradient>
+        </defs>
+        <polyline class="trend-line" id="trend-line" points=""/>
+        <polygon  class="trend-area" id="trend-area" points=""/>
+      </svg>
+    </div>
+
+    <!-- ── CSV Table ── -->
+    <div class="csv-table-wrap">
+      <table id="plates-table">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Confianza</th>
+            <th>Timestamp</th>
+            <th>Sesión</th>
+            <th>Imagen ROI</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="5" class="loading">Cargando datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /page -->
+
+  <script>
+    let currentFilter = 'all';
+    let currentPage   = 1;
+    let allPlates     = [];
+    const PAGE_SIZE   = 10;
+
+    // ── Load on start ──
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStats();
+      loadSessions();
+      loadPlates();
+      loadImages();
+    });
+
+    // ── /api/stats ──
+    async function loadStats() {
+      try {
+        const r = await fetch('/api/stats');
+        const d = await r.json();
+        document.getElementById('stat-total').textContent    = d.total_plates   ?? '--';
+        document.getElementById('stat-conf').textContent     = d.avg_conf != null
+          ? (d.avg_conf * 100).toFixed(1) + '%' : '--%';
+        document.getElementById('stat-imgs').textContent     = d.total_images    ?? '--';
+        document.getElementById('stat-sessions').textContent = d.total_sessions  ?? '--';
+      } catch (e) {
+        console.error('[stats]', e);
+      }
+    }
+
+    // ── /api/sessions → bar chart ──
+    async function loadSessions() {
+      try {
+        const r  = await fetch('/api/sessions');
+        const ds = await r.json();   // [{session, avg_conf}, ...]
+        renderBarChart(ds);
+      } catch (e) {
+        console.error('[sessions]', e);
+      }
+    }
+
+    function renderBarChart(data) {
+      const svg = document.getElementById('bar-svg');
+      svg.innerHTML = '';
+      if (!data.length) return;
+      const W = 400, H = 120, pad = { l: 30, r: 10, t: 10, b: 24 };
+      const plotW = W - pad.l - pad.r;
+      const plotH = H - pad.t - pad.b;
+      const barW  = Math.max(4, plotW / data.length - 2);
+
+      data.forEach((d, i) => {
+        const x   = pad.l + i * (plotW / data.length);
+        const val = Math.min(1, Math.max(0, d.avg_conf ?? 0));
+        const h   = val * plotH;
+        const y   = pad.t + (plotH - h);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', barW);
+        rect.setAttribute('height', h);
+        rect.setAttribute('class', 'bar-rect');
+        rect.setAttribute('title', `${d.session}: ${(val*100).toFixed(1)}%`);
+        svg.appendChild(rect);
+
+        // X-axis label (every 3rd to avoid clutter)
+        if (i % 3 === 0) {
+          const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txt.setAttribute('x', x + barW / 2);
+          txt.setAttribute('y', H - 4);
+          txt.setAttribute('text-anchor', 'middle');
+          txt.setAttribute('class', 'axis-label');
+          txt.textContent = d.session?.toString().slice(-4) ?? i;
+          svg.appendChild(txt);
+        }
+      });
+
+      // Y-axis labels
+      ['0%', '50%', '100%'].forEach((label, i) => {
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', 2);
+        txt.setAttribute('y', pad.t + plotH - i * (plotH / 2) + 4);
+        txt.setAttribute('class', 'axis-label');
+        txt.textContent = label;
+        svg.appendChild(txt);
+      });
+    }
+
+    // ── /api/plates ──
+    async function loadPlates(page = 1) {
+      try {
+        const r  = await fetch(`/api/plates?page=${page}&limit=${PAGE_SIZE}`);
+        const ds = await r.json();
+        allPlates = Array.isArray(ds) ? ds : (ds.plates ?? []);
+        currentPage = page;
+        document.getElementById('page-label').textContent = page;
+        renderTimeline(allPlates);
+        renderTable(allPlates);
+        renderFPSTrend(allPlates);
+      } catch (e) {
+        console.error('[plates]', e);
+      }
+    }
+
+    function applyFilter(plates) {
+      const q = document.getElementById('search-input').value.trim().toUpperCase();
+      return plates.filter(p => {
+        const conf = p.confidence ?? p.conf ?? 0;
+        let ok = true;
+        if (currentFilter === 'high')   ok = conf >= 0.95;
+        if (currentFilter === 'medium') ok = conf >= 0.8 && conf < 0.95;
+        if (currentFilter === 'low')    ok = conf < 0.8;
+        if (q) ok = ok && (p.plate ?? '').includes(q);
+        return ok;
+      });
+    }
+
+    function renderTimeline(plates) {
+      const list = document.getElementById('timeline-list');
+      const filtered = applyFilter(plates);
+      if (!filtered.length) {
+        list.innerHTML = '<li><span class="loading">Sin resultados</span></li>';
+        return;
+      }
+      list.innerHTML = filtered.map(p =>
+        `<li>
+          <span class="tl-plate">${p.plate ?? '---'}</span>
+          <span class="tl-meta">${p.timestamp ?? ''} · ${((p.confidence??0)*100).toFixed(1)}%</span>
+        </li>`
+      ).join('');
+    }
+
+    function renderTable(plates) {
+      const tbody = document.getElementById('table-body');
+      const filtered = applyFilter(plates);
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">Sin resultados</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filtered.map(p =>
+        `<tr>
+          <td>${p.plate ?? '---'}</td>
+          <td>${((p.confidence??0)*100).toFixed(2)}%</td>
+          <td>${p.timestamp ?? '--'}</td>
+          <td>${p.session ?? '--'}</td>
+          <td>${p.image ? `<a href="${p.image}" target="_blank" style="color:var(--accent)">ver</a>` : '--'}</td>
+        </tr>`
+      ).join('');
+    }
+
+    function renderFPSTrend(plates) {
+      const fpsSeries = plates.map((p, i) => ({
+        x: i,
+        y: p.fps ?? Math.random() * 15 + 20   // fallback for demo
+      }));
+      const W = 800, H = 60;
+      const maxFps = Math.max(...fpsSeries.map(d => d.y), 1);
+      const pts = fpsSeries.map((d, i) => {
+        const x = (i / Math.max(fpsSeries.length - 1, 1)) * W;
+        const y = H - (d.y / maxFps) * (H - 4) - 2;
+        return `${x},${y}`;
+      }).join(' ');
+
+      document.getElementById('trend-line').setAttribute('points', pts);
+      const areaPts = `0,${H} ` + pts + ` ${W},${H}`;
+      document.getElementById('trend-area').setAttribute('points', areaPts);
+    }
+
+    // ── /api/images ──
+    async function loadImages() {
+      try {
+        const r    = await fetch('/api/images');
+        const imgs = await r.json();
+        const grid = document.getElementById('gallery-grid');
+        if (!imgs.length) {
+          grid.innerHTML = '<div class="gallery-item"><span class="loading">Sin imágenes</span></div>';
+          return;
+        }
+        grid.innerHTML = imgs.map(img =>
+          `<div class="gallery-item">
+            <img src="${img.url}" alt="${img.plate ?? 'ROI'}" loading="lazy"
+                 onerror="this.style.display='none'">
+            <div class="img-label">${img.plate ?? ''}</div>
+          </div>`
+        ).join('');
+      } catch (e) {
+        console.error('[images]', e);
+      }
+    }
+
+    // ── Filter logic ──
+    function setFilter(btn, filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTimeline(allPlates);
+      renderTable(allPlates);
+    }
+
+    function filterTable() {
+      renderTimeline(allPlates);
+      renderTable(allPlates);
+    }
+
+    function prevPage() {
+      if (currentPage > 1) loadPlates(currentPage - 1);
+    }
+
+    function nextPage() {
+      loadPlates(currentPage + 1);
+    }
+  </script>
+</body>
+</html>

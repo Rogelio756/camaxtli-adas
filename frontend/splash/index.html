@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAMAXTLI · ADAS</title>
+  <link rel="stylesheet" href="/splash/styles.css">
+</head>
+<body>
+
+  <p class="label-system fade-up">Advanced Driver Assistance System</p>
+
+  <h1 class="title-camaxtli fade-up">
+    CAMA<span class="x-accent">X</span>TLI
+  </h1>
+
+  <div class="divider fade-up" style="animation-delay:0.5s;"></div>
+
+  <div class="nodes-row fade-up">
+    <div class="node">
+      <div class="node-dot"></div>
+      <span>Pi5 · Hailo-8</span>
+    </div>
+    <div class="node">
+      <div class="node-dot"></div>
+      <span>Copiloto Server</span>
+    </div>
+    <div class="node">
+      <div class="node-dot"></div>
+      <span>Pi4 · TTS</span>
+    </div>
+  </div>
+
+  <div class="progress-wrap fade-up">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+
+  <button class="btn-enter" id="btn-enter" onclick="window.location.href='/dashboard'">
+    Entrar al Dashboard &rarr;
+  </button>
+
+  <footer class="footer fade-up">
+    Tlaxcala &middot; Ciudad de M&eacute;xico &middot; v1.0 &middot; MCPR 2026
+  </footer>
+
+  <script>
+    const btn = document.getElementById('btn-enter');
+    // Show button after 3s progress + 0.5s fade-in delay
+    setTimeout(() => {
+      btn.classList.add('visible');
+    }, 3500);
+  </script>
+</body>
+</html>

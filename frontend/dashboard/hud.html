@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAMAXTLI · Dashboard</title>
+  <link rel="stylesheet" href="/dashboard/hud.css">
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header>
+    <div>
+      <div class="header-brand">CAMA<span class="x-accent">X</span>TLI</div>
+      <div class="header-sub">ADAS &middot; Copiloto</div>
+    </div>
+    <div class="header-right">
+      <div class="live-pill">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+      <div id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- ── Nav ── -->
+  <nav>
+    <a class="nav-tab" href="/splash">Inicio<span class="node-status" id="dot-pi5"></span></a>
+    <a class="nav-tab active" href="/dashboard">Dashboard<span class="node-status" id="dot-server"></span></a>
+    <a class="nav-tab" href="/data">Data Explorer<span class="node-status" id="dot-pi4"></span></a>
+  </nav>
+
+  <!-- ── Stat cards ── -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">FPS</div>
+      <div class="stat-value green" id="stat-fps">--</div>
+      <div class="stat-unit">frames / seg</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Latencia E2E</div>
+      <div class="stat-value blue" id="stat-lat">--</div>
+      <div class="stat-unit">milisegundos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Tasa OCR</div>
+      <div class="stat-value amber" id="stat-ocr">--%</div>
+      <div class="stat-unit">confianza promedio</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Detecciones</div>
+      <div class="stat-value white" id="stat-det">--</div>
+      <div class="stat-unit">sesión actual</div>
+    </div>
+  </div>
+
+  <!-- ── Main 3-col grid ── -->
+  <div class="main-grid">
+
+    <!-- COL 1: left panels -->
+    <div class="col-left">
+      <div class="panel">
+        <div class="panel-title">Tiempo Op.</div>
+        <div class="panel-body">
+          <div class="tiempo-value" id="uptime">0:00:00</div>
+          <div class="tiempo-sub">hh:mm:ss</div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;min-height:0">
+        <div class="panel-title">Pipeline</div>
+        <div class="panel-body">
+          <div class="pipeline-step step-done">
+            <span class="icon">&#10003;</span> Captura
+          </div>
+          <div class="pipeline-step step-active" id="step-detect">
+            <span class="icon">&#9679;</span> Detección
+          </div>
+          <div class="pipeline-step step-idle" id="step-roi">
+            <span class="icon">&#9679;</span> ROI
+          </div>
+          <div class="pipeline-step step-idle" id="step-ocr">
+            <span class="icon">&#9679;</span> OCR
+          </div>
+          <div class="pipeline-step step-idle" id="step-llm">
+            <span class="icon">&#9675;</span> LLM
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL 2: stream -->
+    <div class="panel stream-panel" style="position:relative">
+      <img src="http://192.168.33.100:8080/video_feed" alt="Stream Pi5" id="cam-stream"
+           style="width:100%;height:100%;object-fit:cover;">
+      <div id="stream-reconnect-overlay" style="
+        display:none;
+        position:absolute;
+        inset:0;
+        background:#050d18;
+        align-items:center;
+        justify-content:center;
+        flex-direction:column;
+        gap:12px;
+      ">
+        <div style="width:32px;height:32px;border:2px solid #5ba3f5;
+          border-top-color:transparent;border-radius:50%;
+          animation:spin 1s linear infinite;"></div>
+        <span style="color:#5ba3f5;font-size:11px;letter-spacing:2px;">
+          RECONECTANDO STREAM...
+        </span>
+      </div>
+      <div class="stream-overlay" id="cam-det-overlay">Det: --</div>
+    </div>
+
+    <!-- COL 3: right panels -->
+    <div class="col-right">
+      <div class="panel" style="flex:1;min-height:0">
+        <div class="panel-title">ROI Placa</div>
+        <div class="panel-body" style="display:flex;flex-direction:column;align-items:center">
+          <div class="roi-img-wrap">
+            <img src="/api/roi" alt="ROI" id="roi-img" onerror="this.style.display='none'">
+          </div>
+          <div id="roi-plate-text">---</div>
+          <div id="roi-conf">conf: --%</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Tasa OCR</div>
+        <div class="panel-body">
+          <div style="font-size:22px;font-weight:200;color:var(--amber)" id="tasa-val">--%</div>
+          <div class="tasa-bar-wrap">
+            <div id="tasa-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Bottom 2-col row ── -->
+  <div class="bottom-row">
+
+    <!-- LLM Analysis -->
+    <div class="panel" style="display:flex;flex-direction:column">
+      <div class="panel-title">Análisis LLM</div>
+      <div class="panel-body" style="display:flex;flex-direction:column">
+        <textarea class="llm-textarea" id="llm-box" readonly
+          placeholder="Esperando resultado LLM..."></textarea>
+        <div class="tts-buttons">
+          <button class="tts-btn" onclick="ttsSpeak('alerta')">&#128266; Alerta</button>
+          <button class="tts-btn" onclick="ttsSpeak('placa')">&#128266; Placa</button>
+          <button class="tts-btn" onclick="ttsSpeak('resumen')">&#128266; Resumen</button>
+          <button class="tts-btn" onclick="ttsSpeak('stop')">&#9632; Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LPR History -->
+    <div class="panel" style="overflow:hidden">
+      <div class="panel-title">Historial LPR</div>
+      <div class="panel-body">
+        <ul id="hist-list">
+          <li><span class="plate-tag">---</span><span class="conf-tag">--:-- · --%</span></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/dashboard/ws.js"></script>
+  <script>
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toTimeString().slice(0, 8);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Uptime
+    const startTime = Date.now();
+    setInterval(() => {
+      const s = Math.floor((Date.now() - startTime) / 1000);
+      const h = Math.floor(s / 3600).toString().padStart(1,'0');
+      const m = Math.floor((s % 3600) / 60).toString().padStart(2,'0');
+      const sec = (s % 60).toString().padStart(2,'0');
+      document.getElementById('uptime').textContent = `${h}:${m}:${sec}`;
+    }, 1000);
+
+    // TTS trigger
+    function ttsSpeak(mode) {
+      fetch('/api/tts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mode})
+      });
+    }
+  </script>
+</body>
+</html>
