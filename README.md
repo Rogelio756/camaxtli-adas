@@ -294,7 +294,7 @@ the land of my father — who guided, protected, and watched over his people.
 | M. en C. Arturo Zúñiga-López | UAM Azcapotzalco |
 | Dr. Salomón Cordero-Sánchez | Depto. de Química · UAM Iztapalapa |
 
-🏔 Tlaxcala &nbsp;·&nbsp; 🏙 Ciudad de México &nbsp;·&nbsp; 🎓 UAM Azcapotzalco &nbsp;·&nbsp; 🇲🇽 México
+🏔 Tlaxcala &nbsp;·&nbsp; 🏙 Ciudad de México &nbsp;·&nbsp; 🎓 UAM Azcapotzalco &nbsp;·&nbsp; 🇲🇽 México &nbsp;·&nbsp; [![LinkedIn](https://img.shields.io/badge/LinkedIn-rogelio--leonardo--mendez--macias-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rogelio-leonardo-mendez-macias/)
 
 ---
 
